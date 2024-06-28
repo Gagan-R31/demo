@@ -30,7 +30,7 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          sudo docker run --rm -it --json -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git > trufflehog.log
+          sudo docker run --rm -it -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git > trufflehog.log
           echo trufflehog.log
           sudo docker pull gaganr31/demo
           sudo docker stop demo || true
