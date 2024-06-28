@@ -33,6 +33,6 @@ jobs:
           sudo docker run --rm -it --json -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git > trufflehog
           echo trufflehog
           sudo docker pull gaganr31/demo
-          sudo docker stop gaganr31/demo || true
-          sudo docker rm gaganr31/demo || true
+          sudo docker stop demo || true
+          sudo docker rm demo || true
           sudo docker run -d --name demo -p 8080:80 gaganr31/demo
