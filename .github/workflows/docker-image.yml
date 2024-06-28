@@ -29,7 +29,7 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          docker pull yourdockerhubusername/your-repo-name:latest
-          docker stop my-website-container || true
-          docker rm my-website-container || true
-          docker run -d --name demo -p 8080:80 gaganr31/demo
+          sudo docker pull yourdockerhubusername/your-repo-name:latest
+          sudo docker stop my-website-container || true
+          sudo docker rm my-website-container || true
+          sudo docker run -d --name demo -p 8080:80 gaganr31/demo
