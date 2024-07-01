@@ -1,28 +1,38 @@
 name: Docker Build and Deploy
-
 on:
   push:
     branches: [ master ]  
   workflow_dispatch: 
 
 jobs:
-  build-and-deploy:
+  security-scan:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Run TruffleHog
+      run: |
+        docker run --rm -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git > trufflehog.log
+        if [ -s trufflehog.log ]; then
+          echo "Error: Secrets detected in the repository"
+          cat trufflehog.log
+          exit 1
+        fi
 
+  build-and-deploy:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
     - name: Login to DockerHub
       uses: docker/login-action@v1
       with:
         username: gaganr31
         password: Gagan@4882
-
     - name: Build and push Docker image
       uses: docker/build-push-action@v2
       with:
         push: true
         tags: gaganr31/demo
-
     - name: Deploy to EC2
       uses: appleboy/ssh-action@master
       with:
@@ -30,9 +40,6 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          sudo docker run --rm -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git | tee trufflehog.log
-          cat trufflehog.log          
-          echo trufflehog.log
           sudo docker pull gaganr31/demo
           sudo docker stop demo || true
           sudo docker rm demo || true
