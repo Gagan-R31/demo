@@ -13,7 +13,7 @@ jobs:
         fetch-depth: 0  # This ensures we get the full git history
     - name: Run TruffleHog
       run: |
-        docker run --rm -v "$PWD:/pwd" trufflesecurity/trufflehog:latest filesystem /pwd > trufflehog.log
+        docker run --rm -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git > trufflehog.log
         if grep -q "high confidence" trufflehog.log; then
           echo "Error: High confidence secrets detected in the repository"
           cat trufflehog.log
