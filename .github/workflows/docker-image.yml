@@ -9,18 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-      with:
-        fetch-depth: 0  # This ensures we get the full git history
     - name: Run TruffleHog
       run: |
         docker run --rm -v "$PWD:/pwd" trufflesecurity/trufflehog:latest github --repo https://github.com/Gagan-R31/demo.git > trufflehog.log
-        if grep -q "high confidence" trufflehog.log; then
-          echo "Error: High confidence secrets detected in the repository"
+        if [ -s trufflehog.log ]; then
+          echo "Error: Secrets detected in the repository"
           cat trufflehog.log
           exit 1
-        else
-          echo "No high confidence secrets detected. Full log:"
-          cat trufflehog.log
         fi
 
   build-and-deploy:
