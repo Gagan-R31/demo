@@ -6,7 +6,7 @@
     - name: Clone repository
       git:
         repo: 'https://github.com/Gagan-R31/demo.git'  # Replace with your GitHub repo URL
-        dest: /var/www/  # Replace with the path where you want to clone the repo on your AWS instance
+        dest: /var/www/demo/  # Replace with the path where you want to clone the repo on your AWS instance
         version: master  # Replace with the branch you want to clone
       register: clone_result  # This registers the result of the clone task for later use
 
