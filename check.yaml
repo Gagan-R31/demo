@@ -1,0 +1,29 @@
+- name: Deploy code to AWS instance
+  hosts: all
+  become: yes  # This will allow us to run tasks with elevated privileges
+  tasks:
+    - name: Clone repository
+      git:
+        repo: 'https://github.com/Gagan-R31/demo.git'  # Replace with your GitHub repo URL
+        dest: /var/www/demo/  # Replace with the path where you want to clone the repo on your AWS instance
+        version: master  # Replace with the branch you want to clone
+      register: clone_result  # This registers the result of the clone task for later use
+
+    - name: Display clone result
+      debug:
+        var: clone_result  # This task will display the result of the clone task
+
+    - name: Check if index.html file is present
+      stat:
+        path: /var/www/demo/index.html  # Path to the index.html file in the cloned repo
+      register: file_check  # Registers the result of the stat task
+
+    - name: Fail if index.html is not present
+      fail:
+        msg: "The file index.html is not present in the repository."
+      when: not file_check.stat.exists  # Fails the playbook if the file does not exist
+
+    - name: Display file presence result
+      debug:
+        msg: "The file index.html is present."
+      when: file_check.stat.exists  # Runs only if the file exists
