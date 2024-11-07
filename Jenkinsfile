@@ -36,9 +36,9 @@ pipeline {
         }
     }
     environment {
-        GITHUB_TOKEN = credentials('github-token') // Jenkins credentials ID for GitHub token
-        DOCKERHUB_REPO = 'gaganr31/argu' // Your Docker Hub repository
-        BUILD_TAG = "${env.BUILD_ID}" // Unique tag for each build
+        GITHUB_TOKEN = credentials('github-token')
+        DOCKERHUB_REPO = 'gaganr31/argu'
+        BUILD_TAG = "${env.BUILD_ID}"
     }
     stages {
         stage('Clone Repository') {
@@ -48,6 +48,8 @@ pipeline {
                     git clone https://github.com/Gagan-R31/demo.git
                     cd demo
                     '''
+                    // Capture the latest commit SHA for tagging
+                    env.COMMIT_SHA = sh(script: "git -C demo rev-parse --short HEAD", returnStdout: true).trim()
                 }
             }
         }
@@ -57,9 +59,9 @@ pipeline {
                     script {
                         sh '''
                         cd demo
-                            /kaniko/executor --dockerfile=./Dockerfile \
-                                             --context=. \
-                                             --destination=${DOCKERHUB_REPO}:${env.COMMIT_SHA}
+                        /kaniko/executor --dockerfile=./Dockerfile \
+                                         --context=. \
+                                         --destination=${DOCKERHUB_REPO}:${COMMIT_SHA}
                         '''
                     }
                 }
