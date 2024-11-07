@@ -14,7 +14,7 @@ pipeline {
                 image: jenkins/inbound-agent
                 args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
               - name: kaniko
-                image: gaganr31/kaniko-go
+                image: bitnami/kaniko
                 command:
                 - /busybox/sh
                 tty: true
