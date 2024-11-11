@@ -73,19 +73,36 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to K3s') {
-            steps {
-                container('kubectl') {
-                    script {
-                        sh """
-                        kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
-                        kubectl apply -f k8s-deployment.yaml
-                        kubectl rollout status deployment/${DEPLOYMENT_NAME}
-                        kubectl get pods
-                        """
-                    }
+   stage('Deploy to K3s') {
+    steps {
+        container('kubectl') {
+            script {
+                // Check if the deployment already exists
+                def deploymentExists = sh(
+                    script: "kubectl get deployment ${DEPLOYMENT_NAME} --ignore-not-found",
+                    returnStatus: true
+                ) == 0
+
+                if (deploymentExists) {
+                    // Update the existing deployment with the new image
+                    echo "Updating existing deployment with new image..."
+                    sh """
+                    kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA}
+                    kubectl rollout status deployment/${DEPLOYMENT_NAME}
+                    kubectl get pods
+                    """
+                } else {
+                    // Create a new deployment if it doesn't exist
+                    echo "Creating new deployment..."
+                    sh """
+                    kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
+                    kubectl apply -f k8s-deployment.yaml
+                    kubectl rollout status deployment/${DEPLOYMENT_NAME}
+                    kubectl get pods
+                    """
                 }
             }
         }
     }
 }
+
