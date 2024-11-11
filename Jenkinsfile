@@ -44,17 +44,18 @@ pipeline {
     environment {
         GITHUB_TOKEN = credentials('github-token')
         DOCKERHUB_REPO = 'gaganr31/argu'
-        BUILD_TAG = "${env.BUILD_ID}"
+        REPO_URL = 'https://github.com/Gagan-R31/demo.git'
+        DEPLOYMENT_NAME = 'browny'
     }
     stages {
         stage('Clone Repository') {
             steps {
                 script {
-                    sh '''
-                    git clone https://github.com/Gagan-R31/demo.git
-                    cd demo
-                    '''
-                    env.COMMIT_SHA = sh(script: "git -C demo rev-parse --short HEAD", returnStdout: true).trim()
+                    def workspaceDir = pwd()
+                    sh """
+                    git clone ${REPO_URL} ${workspaceDir}/demo
+                    """
+                    env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
                 }
             }
         }
@@ -62,12 +63,12 @@ pipeline {
             steps {
                 container('kaniko') {
                     script {
-                        sh '''
+                        sh """
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
                                          --destination=${DOCKERHUB_REPO}:${COMMIT_SHA}
-                        '''
+                        """
                     }
                 }
             }
@@ -76,12 +77,12 @@ pipeline {
             steps {
                 container('kubectl') {
                     script {
-                        sh '''
-                        kubectl create deployment browny --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
+                        sh """
+                        kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
                         kubectl apply -f k8s-deployment.yaml
-                        kubectl rollout status deployment/browny
+                        kubectl rollout status deployment/${DEPLOYMENT_NAME}
                         kubectl get pods
-                        '''
+                        """
                     }
                 }
             }
