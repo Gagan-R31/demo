@@ -77,6 +77,9 @@ pipeline {
                 container('kubectl') {
                     script {
                         sh '''
+                        kubectl create deployment browny --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
+                        kubectl apply -f k8s-deployment.yaml
+                        kubectl rollout status deployment/browny
                         kubectl get pods
                         '''
                     }
