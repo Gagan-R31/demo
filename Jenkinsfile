@@ -47,6 +47,7 @@ pipeline {
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
+        SOURCE_BRANCH = "${env.CHANGE_BRANCH ?: env.GIT_BRANCH}"
     }
     stages {
         stage('Clone Repository') {
@@ -54,7 +55,7 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone ${REPO_URL} ${workspaceDir}/demo
+                    git clone -b ${env.SOURCE_BRANCH} https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
                     env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
                 }
