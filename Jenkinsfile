@@ -2,17 +2,18 @@ pipeline {
     agent {
         kubernetes {
             label 'k8s-agent'
-            yaml '''
+            yaml """
             apiVersion: v1
             kind: Pod
             metadata:
               labels:
                 some-label: some-label-value
             spec:
+              serviceAccountName: jenkins
               containers:
               - name: jnlp
                 image: jenkins/inbound-agent
-                args: ['$(JENKINS_SECRET)', '$(JENKINS_NAME)']
+                args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
               - name: kaniko
                 image: gaganr31/kaniko-go
                 command:
@@ -37,7 +38,7 @@ pipeline {
                     path: config.json
               - name: workspace-volume
                 emptyDir: {}
-            '''
+            """
         }
     }
     environment {
