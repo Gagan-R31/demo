@@ -50,61 +50,19 @@ pipeline {
         SOURCE_BRANCH = "${env.CHANGE_BRANCH ?: env.GIT_BRANCH}"
     }
     stages {
-        stage('Clone Repository') {
+        stage('Build') {
             steps {
-                script {
-                    def workspaceDir = pwd()
-                    sh """
-                    git clone -b Jenkisn-test https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
-                    """
-                    env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
-                }
+                echo 'Building...'
             }
         }
-        stage('Build Docker Image with Kaniko') {
+        stage('Test') {
             steps {
-                container('kaniko') {
-                    script {
-                        sh """
-                        cd demo
-                        /kaniko/executor --dockerfile=./Dockerfile \
-                                         --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${COMMIT_SHA}
-                        """
-                    }
-                }
+                echo 'Testing...'
             }
         }
-        stage('Deploy to K3s') {
+        stage('Deploy') {
             steps {
-                container('kubectl') {
-                    script {
-                        // Check if the deployment already exists in the specified namespace
-                        def deploymentExists = sh(
-                            script: "kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE} --ignore-not-found",
-                            returnStatus: true
-                        ) == 0
-
-                        if (deploymentExists) {
-                            // Update the existing deployment with the new image
-                            echo "Updating existing deployment with new image..."
-                            sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            kubectl get pods -n ${NAMESPACE}
-                            """
-                        } else {
-                            // Create a new deployment if it doesn't exist
-                            echo "Creating new deployment..."
-                            sh """
-                            kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
-                            kubectl apply -f k8s-deployment.yaml -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            kubectl get pods -n ${NAMESPACE}
-                            """
-                        }
-                    }
-                }
+                echo 'Deploying...'
             }
         }
     }
