@@ -45,7 +45,7 @@ pipeline {
         GITHUB_TOKEN = credentials('github-token')
         DOCKERHUB_REPO = 'gaganr31/argu'
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
-        DEPLOYMENT_NAME = 'browny'
+        DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
     }
     stages {
