@@ -77,7 +77,7 @@ pipeline {
                 container('kubectl') {
                     script {
                         sh '''
-                        kubectl get pods
+                        kubectl get pods -n jenkins-operator
                         '''
                     }
                 }
