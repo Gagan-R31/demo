@@ -25,7 +25,7 @@ pipeline {
                 - name: workspace-volume
                   mountPath: /workspace
               - name: kubectl
-                image: rancher/kubectl
+                image: boxboat/kubectl
                 command:
                 - cat
                 tty: true
