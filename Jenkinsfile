@@ -46,6 +46,7 @@ pipeline {
         DOCKERHUB_REPO = 'gaganr31/argu'
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'browny'
+        NAMESPACE = 'jenkins-operator'
     }
     stages {
         stage('Clone Repository') {
@@ -77,9 +78,9 @@ pipeline {
             steps {
                 container('kubectl') {
                     script {
-                        // Check if the deployment already exists
+                        // Check if the deployment already exists in the specified namespace
                         def deploymentExists = sh(
-                            script: "kubectl get deployment ${DEPLOYMENT_NAME} --ignore-not-found",
+                            script: "kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE} --ignore-not-found",
                             returnStatus: true
                         ) == 0
 
@@ -87,18 +88,18 @@ pipeline {
                             // Update the existing deployment with the new image
                             echo "Updating existing deployment with new image..."
                             sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n jenkins-operator
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME}
-                            kubectl get pods
+                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n ${NAMESPACE}
+                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
+                            kubectl get pods -n ${NAMESPACE}
                             """
                         } else {
                             // Create a new deployment if it doesn't exist
                             echo "Creating new deployment..."
                             sh """
                             kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
-                            kubectl apply -f k8s-deployment.yaml
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME}
-                            kubectl get pods
+                            kubectl apply -f k8s-deployment.yaml -n ${NAMESPACE}
+                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
+                            kubectl get pods -n ${NAMESPACE}
                             """
                         }
                     }
