@@ -86,10 +86,10 @@ pipeline {
                             kubectl rollout status deployment/${DEPLOYMENT_NAME}
                             """
                         } else {
-                            // Create a new deployment if it doesn’t exist
+                            // Create a new deployment if it doesn’t exist, setting container name as `browny`
                             echo "Creating a new deployment..."
                             sh """
-                            kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
+                            kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml | sed "s/name: app/name: ${DEPLOYMENT_NAME}/" > k8s-deployment.yaml
                             kubectl apply -f k8s-deployment.yaml
                             kubectl rollout status deployment/${DEPLOYMENT_NAME}
                             """
