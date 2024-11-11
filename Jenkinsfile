@@ -77,12 +77,24 @@ pipeline {
             steps {
                 container('kubectl') {
                     script {
-                        sh """
-                        kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
-                        kubectl apply -f k8s-deployment.yaml
-                        kubectl rollout status deployment/${DEPLOYMENT_NAME}
-                        kubectl get pods
-                        """
+                        def deploymentExists = sh(script: "kubectl get deployment ${DEPLOYMENT_NAME} --ignore-not-found", returnStatus: true) == 0
+                        if (deploymentExists) {
+                            // Update the image for an existing deployment
+                            echo "Updating existing deployment with new image..."
+                            sh """
+                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA}
+                            kubectl rollout status deployment/${DEPLOYMENT_NAME}
+                            """
+                        } else {
+                            // Create a new deployment if it doesn’t exist
+                            echo "Creating a new deployment..."
+                            sh """
+                            kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
+                            kubectl apply -f k8s-deployment.yaml
+                            kubectl rollout status deployment/${DEPLOYMENT_NAME}
+                            """
+                        }
+                        sh "kubectl get pods"
                     }
                 }
             }
