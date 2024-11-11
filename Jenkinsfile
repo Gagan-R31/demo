@@ -77,7 +77,7 @@ pipeline {
                 container('kubectl') {
                     script {
                         sh '''
-                        echo "hello"
+                        kubectl get pods
                         '''
                     }
                 }
