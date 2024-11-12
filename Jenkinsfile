@@ -55,6 +55,7 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
+                    echo "Cloning branch: ${env.SOURCE_BRANCH}"
                     git clone -b ${env.SOURCE_BRANCH} https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
                     env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
