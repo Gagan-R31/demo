@@ -43,6 +43,7 @@ pipeline {
     }
     environment {
         GITHUB_TOKEN = credentials('github-token')
+        SLACK_TOKEN = credentials('slack-token')
         DOCKERHUB_REPO = 'gaganr31/argu'
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'argu'
@@ -56,9 +57,23 @@ pipeline {
                     def workspaceDir = pwd()
                     sh """
                     echo "Cloning branch: ${env.SOURCE_BRANCH}"
-                    git clone -b jenkins https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
+                    git clone -b ${env.SOURCE_BRANCH} https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
                     env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
+                    env.COMMIT_AUTHOR = sh(script: "git -C ${workspaceDir}/demo log -1 --pretty=format:'%an'", returnStdout: true).trim()
+                    env.COMMIT_MESSAGE = sh(script: "git -C ${workspaceDir}/demo log -1 --pretty=format:'%s'", returnStdout: true).trim()
+                }
+            }
+        }
+        stage('Send Slack Notification - Pipeline Start') {
+            steps {
+                script {
+                    slackSend(
+                        tokenCredentialId: 'slack-token',
+                        channel: '#ci-cd',
+                        color: '#FFFF00',
+                        message: "*Pipeline Started*\nBranch: `${SOURCE_BRANCH}`\nCommit: `${COMMIT_SHA}` by `${COMMIT_AUTHOR}`\nMessage: `${COMMIT_MESSAGE}`"
+                    )
                 }
             }
         }
@@ -80,28 +95,23 @@ pipeline {
             steps {
                 container('kubectl') {
                     script {
-                        // Check if the deployment already exists in the specified namespace
                         def deploymentExists = sh(
                             script: "kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE} --ignore-not-found",
                             returnStatus: true
                         ) == 0
 
                         if (deploymentExists) {
-                            // Update the existing deployment with the new image
                             echo "Updating existing deployment with new image..."
                             sh """
                             kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n ${NAMESPACE}
                             kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            kubectl get pods -n ${NAMESPACE}
                             """
                         } else {
-                            // Create a new deployment if it doesn't exist
                             echo "Creating new deployment..."
                             sh """
                             kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
                             kubectl apply -f k8s-deployment.yaml -n ${NAMESPACE}
                             kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            kubectl get pods -n ${NAMESPACE}
                             """
                         }
                     }
@@ -109,5 +119,18 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            script {
+                def color = currentBuild.result == 'SUCCESS' ? '#00FF00' : '#FF0000'
+                def status = currentBuild.result ?: 'SUCCESS'
+                slackSend(
+                    tokenCredentialId: 'slack-token',
+                    channel: '#ci-cd',
+                    color: color,
+                    message: "*Pipeline Finished*\nStatus: `${status}`\nBranch: `${SOURCE_BRANCH}`\nCommit: `${COMMIT_SHA}` by `${COMMIT_AUTHOR}`\nMessage: `${COMMIT_MESSAGE}`"
+                )
+            }
+        }
+    }
 }
-
