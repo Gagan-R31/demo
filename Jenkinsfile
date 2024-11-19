@@ -43,12 +43,13 @@ pipeline {
     }
     environment {
         GITHUB_TOKEN = credentials('github-token')
-        SLACK_TOKEN = credentials('slack-token')
         DOCKERHUB_REPO = 'gaganr31/argu'
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
         SOURCE_BRANCH = "${env.CHANGE_BRANCH ?: env.GIT_BRANCH}"
+        THREAD_ID = UUID.randomUUID().toString() // Create a unique thread ID for this build
+        JENKINS_URL = "${env.BUILD_URL}" // URL to Jenkins build page
     }
     stages {
         stage('Clone Repository') {
@@ -56,27 +57,43 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    echo "Cloning branch: ${env.SOURCE_BRANCH}"
-                    git clone -b ${env.SOURCE_BRANCH} https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
+                    git clone -b dev https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
                     env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
-                    env.COMMIT_AUTHOR = sh(script: "git -C ${workspaceDir}/demo log -1 --pretty=format:'%an'", returnStdout: true).trim()
-                    env.COMMIT_MESSAGE = sh(script: "git -C ${workspaceDir}/demo log -1 --pretty=format:'%s'", returnStdout: true).trim()
+                }
+            }
+            post {
+                success {
+                    script {
+                        def requestBody = """{
+                            "text": ":white_check_mark: **Clone Repository completed successfully**\\nBranch: ${env.SOURCE_BRANCH}, Commit: ${env.COMMIT_SHA}\\n[View Build Logs](${env.JENKINS_URL})",
+                            "thread_id": "${env.THREAD_ID}"
+                        }"""
+                        httpRequest(
+                            httpMode: 'POST',
+                            url: 'https://api.pumble.com/workspaces/673c21ed7f891f7d9b11d8cf/incomingWebhooks/postMessage/NrRX5lxK6ixnWnGqfQAMKRXB',
+                            contentType: 'APPLICATION_JSON',
+                            requestBody: requestBody
+                        )
+                    }
+                }
+                failure {
+                    script {
+                        def requestBody = """{
+                            "text": ":x: **Clone Repository failed**\\nBranch: ${env.SOURCE_BRANCH}\\n[View Build Logs](${env.JENKINS_URL})",
+                            "thread_id": "${env.THREAD_ID}"
+                        }"""
+                        httpRequest(
+                            httpMode: 'POST',
+                            url: 'https://api.pumble.com/workspaces/673c21ed7f891f7d9b11d8cf/incomingWebhooks/postMessage/NrRX5lxK6ixnWnGqfQAMKRXB',
+                            contentType: 'APPLICATION_JSON',
+                            requestBody: requestBody
+                        )
+                    }
                 }
             }
         }
-        stage('Send Slack Notification - Pipeline Start') {
-            steps {
-                script {
-                    slackSend(
-                        tokenCredentialId: 'slack-token',
-                        channel: '#ci-cd',
-                        color: '#FFFF00',
-                        message: "*Pipeline Started*\nBranch: `${SOURCE_BRANCH}`\nCommit: `${COMMIT_SHA}` by `${COMMIT_AUTHOR}`\nMessage: `${COMMIT_MESSAGE}`"
-                    )
-                }
-            }
-        }
+        // Similarly, other stages like Build Docker Image and Deploy to K3s go here
         stage('Build Docker Image with Kaniko') {
             steps {
                 container('kaniko') {
@@ -90,49 +107,35 @@ pipeline {
                     }
                 }
             }
-        }
-        stage('Deploy to K3s') {
-            steps {
-                container('kubectl') {
+            post {
+                success {
                     script {
-                        def deploymentExists = sh(
-                            script: "kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE} --ignore-not-found",
-                            returnStatus: true
-                        ) == 0
-
-                        if (deploymentExists) {
-                            echo "Updating existing deployment with new image..."
-                            sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            """
-                        } else {
-                            echo "Creating new deployment..."
-                            sh """
-                            kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
-                            kubectl apply -f k8s-deployment.yaml -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            """
-                        }
+                        def requestBody = """{
+                            "text": ":white_check_mark: **Docker image built successfully**\\nImage: ${DOCKERHUB_REPO}:${COMMIT_SHA}\\n[View Build Logs](${env.JENKINS_URL})",
+                            "thread_id": "${env.THREAD_ID}"
+                        }"""
+                        httpRequest(
+                            httpMode: 'POST',
+                            url: 'https://api.pumble.com/workspaces/673c21ed7f891f7d9b11d8cf/incomingWebhooks/postMessage/NrRX5lxK6ixnWnGqfQAMKRXB',
+                            contentType: 'APPLICATION_JSON',
+                            requestBody: requestBody
+                        )
                     }
                 }
-            }
-        }
-    }
-    post {
-        always {
-            script {
-                def slackMessage = """
-                *Pipeline Notification:*
-                - Branch: ${env.SOURCE_BRANCH}
-                - Commit: ${env.COMMIT_SHA}
-                - Status: ${currentBuild.result ?: 'UNKNOWN'}
-                """.stripIndent()
-                slackSend(
-                    channel: 'jenkins-notification',
-                    color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger',
-                    message: slackMessage
-                )
+                failure {
+                    script {
+                        def requestBody = """{
+                            "text": ":x: **Docker image build failed**\\nCommit: ${env.COMMIT_SHA}\\n[View Build Logs](${env.JENKINS_URL})",
+                            "thread_id": "${env.THREAD_ID}"
+                        }"""
+                        httpRequest(
+                            httpMode: 'POST',
+                            url: 'https://api.pumble.com/workspaces/673c21ed7f891f7d9b11d8cf/incomingWebhooks/postMessage/NrRX5lxK6ixnWnGqfQAMKRXB',
+                            contentType: 'APPLICATION_JSON',
+                            requestBody: requestBody
+                        )
+                    }
+                }
             }
         }
     }
