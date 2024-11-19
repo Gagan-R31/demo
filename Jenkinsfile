@@ -122,13 +122,16 @@ pipeline {
     post {
         always {
             script {
-                def color = currentBuild.result == 'SUCCESS' ? '#00FF00' : '#FF0000'
-                def status = currentBuild.result ?: 'SUCCESS'
+                def slackMessage = """
+                *Pipeline Notification:*
+                - Branch: ${env.SOURCE_BRANCH}
+                - Commit: ${env.COMMIT_SHA}
+                - Status: ${currentBuild.result ?: 'UNKNOWN'}
+                """.stripIndent()
                 slackSend(
-                    tokenCredentialId: 'slack-token',
-                    channel: '#ci-cd',
-                    color: color,
-                    message: "*Pipeline Finished*\nStatus: `${status}`\nBranch: `${SOURCE_BRANCH}`\nCommit: `${COMMIT_SHA}` by `${COMMIT_AUTHOR}`\nMessage: `${COMMIT_MESSAGE}`"
+                    channel: 'jenkins-notification',
+                    color: currentBuild.result == 'SUCCESS' ? 'good' : 'danger',
+                    message: slackMessage
                 )
             }
         }
