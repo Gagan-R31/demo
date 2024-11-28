@@ -24,13 +24,8 @@ pipeline {
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
-              - name: kubectl
-                image: boxboat/kubectl
-                command:
-                - cat
-                tty: true
               - name: yq
-                image: mikefarah/yq:latest
+                image: alpine/git:latest
                 command:
                 - cat
                 tty: true
@@ -49,7 +44,7 @@ pipeline {
     environment {
         IMAGE_TAG = "v${BUILD_NUMBER}"
         HARBOR_REPO = "harbor.zapto.org/browny/my-app"
-        HELM_CHART_DIR = "browny"
+        HELM_CHART_DIR = "helm"
         KUBE_NAMESPACE = "browny"
     }
     stages {
