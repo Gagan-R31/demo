@@ -82,9 +82,6 @@ pipeline {
                 container('yq') {
                     script {
                         sh """
-                        echo "Installing yq..."
-                        apt install yq -y
-                        
                         echo "Cloning Helm chart repository..."
                         git clone https://github.com/Gagan-R31/demo.git helm-repo
                         cd helm-repo/${HELM_CHART_DIR}
