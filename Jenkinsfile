@@ -30,7 +30,7 @@ pipeline {
                 - cat
                 tty: true
               - name: crane
-                image: chainguard/crane:latest
+                image: alpine/crane:latest
                 command:
                 - cat
                 tty: true
