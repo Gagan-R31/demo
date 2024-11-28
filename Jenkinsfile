@@ -29,11 +29,6 @@ pipeline {
                 command:
                 - cat
                 tty: true
-              - name: crane
-                image: gcr.io/go-containerregistry/crane
-                command:
-                - cat
-                tty: true
               - name: yq
                 image: mikefarah/yq:latest
                 command:
@@ -83,7 +78,6 @@ pipeline {
         }
         stage('Fetch Image Digest') {
             steps {
-                container('crane') {
                     script {
                         env.IMAGE_DIGEST = sh(
                             script: """
@@ -93,7 +87,7 @@ pipeline {
                         ).trim()
                         echo "Image digest fetched: ${IMAGE_DIGEST}"
                     }
-                }
+                
             }
         }
         stage('Update Helm Chart') {
