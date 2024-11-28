@@ -29,6 +29,11 @@ pipeline {
                 command:
                 - cat
                 tty: true
+              - name: crane
+                image: chainguard/crane:latest
+                command:
+                - cat
+                tty: true
               - name: yq
                 image: mikefarah/yq:latest
                 command:
