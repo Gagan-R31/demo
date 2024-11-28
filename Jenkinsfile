@@ -83,6 +83,7 @@ pipeline {
         }
         stage('Fetch Image Digest') {
             steps {
+                container('crane') {
                     script {
                         env.IMAGE_DIGEST = sh(
                             script: """
@@ -92,7 +93,7 @@ pipeline {
                         ).trim()
                         echo "Image digest fetched: ${IMAGE_DIGEST}"
                     }
-                
+                }
             }
         }
         stage('Update Helm Chart') {
