@@ -29,11 +29,6 @@ pipeline {
                 command:
                 - cat
                 tty: true
-              - name: crane
-                image: alpine/crane:latest
-                command:
-                - cat
-                tty: true
               - name: yq
                 image: mikefarah/yq:latest
                 command:
@@ -81,21 +76,7 @@ pipeline {
                 }
             }
         }
-        stage('Fetch Image Digest') {
-            steps {
-                container('crane') {
-                    script {
-                        env.IMAGE_DIGEST = sh(
-                            script: """
-                            crane digest ${HARBOR_REPO}:${IMAGE_TAG}
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        echo "Image digest fetched: ${IMAGE_DIGEST}"
-                    }
-                }
-            }
-        }
+
         stage('Update Helm Chart') {
             steps {
                 container('yq') {
@@ -108,13 +89,12 @@ pipeline {
                         git clone https://github.com/Gagan-R31/demo.git helm-repo
                         cd helm-repo/${HELM_CHART_DIR}
 
-                        echo "Updating Helm chart with new image tag and digest..."
+                        echo "Updating Helm chart with new image tag..."
                         yq e '.image.tag = "${IMAGE_TAG}"' -i values.yaml
-                        yq e '.image.digest = "${IMAGE_DIGEST}"' -i values.yaml
 
                         git config user.name "CI Bot"
                         git config user.email "gagankumar4882@gmail.com"
-                        git commit -am "Update image tag to ${IMAGE_TAG} and digest to ${IMAGE_DIGEST}"
+                        git commit -am "Update image tag to ${IMAGE_TAG}"
                         git push origin dev
                         """
                     }
@@ -130,7 +110,6 @@ pipeline {
                         --namespace ${KUBE_NAMESPACE} \
                         --set image.repository=${HARBOR_REPO} \
                         --set image.tag=${IMAGE_TAG} \
-                        --set image.digest=${IMAGE_DIGEST} \
                         --atomic --wait
                     """
                 }
@@ -139,7 +118,7 @@ pipeline {
     }
     post {
         success {
-            echo "Pipeline executed successfully! Image: ${HARBOR_REPO}:${IMAGE_TAG}, Digest: ${IMAGE_DIGEST}"
+            echo "Pipeline executed successfully! Image: ${HARBOR_REPO}:${IMAGE_TAG}"
         }
         failure {
             echo "Pipeline failed! Check logs for details."
