@@ -1,13 +1,13 @@
 pipeline {
     agent {
         kubernetes {
-            label 'k8s-agent'
+            label 'jenkins-k8s-agent'
             yaml """
             apiVersion: v1
             kind: Pod
             metadata:
               labels:
-                some-label: some-label-value
+                jenkins-agent: jenkins-agent
             spec:
               serviceAccountName: jenkins
               containers:
@@ -20,7 +20,7 @@ pipeline {
                 - /busybox/sh
                 tty: true
                 volumeMounts:
-                - name: kaniko-secret
+                - name: docker-secret
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
@@ -29,10 +29,20 @@ pipeline {
                 command:
                 - cat
                 tty: true
+              - name: crane
+                image: gcr.io/go-containerregistry/crane
+                command:
+                - cat
+                tty: true
+              - name: yq
+                image: mikefarah/yq:latest
+                command:
+                - cat
+                tty: true
               volumes:
-              - name: kaniko-secret
+              - name: docker-secret
                 secret:
-                  secretName: kaniko-secret
+                  secretName: harbor-secrets
                   items:
                   - key: .dockerconfigjson
                     path: config.json
@@ -42,70 +52,97 @@ pipeline {
         }
     }
     environment {
-        GITHUB_TOKEN = credentials('github-token')
-        DOCKERHUB_REPO = 'gaganr31/argu'
-        REPO_URL = 'https://github.com/Gagan-R31/demo.git'
-        DEPLOYMENT_NAME = 'argu'
-        NAMESPACE = 'jenkins-operator'
-        SOURCE_BRANCH = "${env.CHANGE_BRANCH ?: env.GIT_BRANCH}"
+        IMAGE_TAG = "v${BUILD_NUMBER}"
+        HARBOR_REPO = "harbor.zapto.org/browny/my-app"
+        HELM_CHART_DIR = "browny"
+        KUBE_NAMESPACE = "browny"
     }
     stages {
         stage('Clone Repository') {
             steps {
                 script {
-                    def workspaceDir = pwd()
                     sh """
-                    git clone -b Jenkisn-test https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
+                    echo "Cloning repository..."
+                    git clone -b dev https://github.com/Gagan-R31/demo.git 
                     """
-                    env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
                 }
             }
         }
-        stage('Build Docker Image with Kaniko') {
+        stage('Build and Push Image') {
             steps {
                 container('kaniko') {
+                    sh """
+                    echo "Building and pushing the Docker image to Harbor..."
+                    /kaniko/executor \
+                    --dockerfile=./Dockerfile \
+                    --context=. \
+                    --destination=${HARBOR_REPO}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+        stage('Fetch Image Digest') {
+            steps {
+                container('crane') {
+                    script {
+                        env.IMAGE_DIGEST = sh(
+                            script: """
+                            crane digest ${HARBOR_REPO}:${IMAGE_TAG}
+                            """,
+                            returnStdout: true
+                        ).trim()
+                        echo "Image digest fetched: ${IMAGE_DIGEST}"
+                    }
+                }
+            }
+        }
+        stage('Update Helm Chart') {
+            steps {
+                container('yq') {
                     script {
                         sh """
-                        cd demo
-                        /kaniko/executor --dockerfile=./Dockerfile \
-                                         --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${COMMIT_SHA}
+                        echo "Installing yq..."
+                        apt install yq -y
+                        
+                        echo "Cloning Helm chart repository..."
+                        git clone https://github.com/Gagan-R31/demo.git helm-repo
+                        cd helm-repo/${HELM_CHART_DIR}
+
+                        echo "Updating Helm chart with new image tag and digest..."
+                        yq e '.image.tag = "${IMAGE_TAG}"' -i values.yaml
+                        yq e '.image.digest = "${IMAGE_DIGEST}"' -i values.yaml
+
+                        git config user.name "CI Bot"
+                        git config user.email "gagankumar4882@gmail.com"
+                        git commit -am "Update image tag to ${IMAGE_TAG} and digest to ${IMAGE_DIGEST}"
+                        git push origin dev
                         """
                     }
                 }
             }
         }
-        stage('Deploy to K3s') {
+        stage('Deploy Using Helm') {
             steps {
                 container('kubectl') {
-                    script {
-                        // Check if the deployment already exists in the specified namespace
-                        def deploymentExists = sh(
-                            script: "kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE} --ignore-not-found",
-                            returnStatus: true
-                        ) == 0
-
-                        if (deploymentExists) {
-                            // Update the existing deployment with the new image
-                            echo "Updating existing deployment with new image..."
-                            sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${DEPLOYMENT_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            kubectl get pods -n ${NAMESPACE}
-                            """
-                        } else {
-                            // Create a new deployment if it doesn't exist
-                            echo "Creating new deployment..."
-                            sh """
-                            kubectl create deployment ${DEPLOYMENT_NAME} --image=${DOCKERHUB_REPO}:${COMMIT_SHA} --dry-run=client -o yaml > k8s-deployment.yaml
-                            kubectl apply -f k8s-deployment.yaml -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE}
-                            kubectl get pods -n ${NAMESPACE}
-                            """
-                        }
-                    }
+                    sh """
+                    echo "Deploying application with Helm..."
+                    helm upgrade --install my-app ${HELM_CHART_DIR} \
+                        --namespace ${KUBE_NAMESPACE} \
+                        --set image.repository=${HARBOR_REPO} \
+                        --set image.tag=${IMAGE_TAG} \
+                        --set image.digest=${IMAGE_DIGEST} \
+                        --atomic --wait
+                    """
                 }
             }
+        }
+    }
+    post {
+        success {
+            echo "Pipeline executed successfully! Image: ${HARBOR_REPO}:${IMAGE_TAG}, Digest: ${IMAGE_DIGEST}"
+        }
+        failure {
+            echo "Pipeline failed! Check logs for details."
         }
     }
 }
