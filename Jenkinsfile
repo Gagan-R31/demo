@@ -9,6 +9,8 @@ pipeline {
               labels:
                 jenkins-agent: jenkins-agent
             spec:
+              nodeSelector:
+                kubernetes.io/hostname: node-05-infra
               serviceAccountName: jenkins
               containers:
               - name: jnlp
@@ -24,15 +26,15 @@ pipeline {
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
-              - name: yq
-                image: alpine/git:latest
+              - name: kubectl
+                image: boxboat/kubectl
                 command:
                 - cat
                 tty: true
               volumes:
               - name: docker-secret
                 secret:
-                  secretName: harbor-secrets
+                  secretName: acr-secret
                   items:
                   - key: .dockerconfigjson
                     path: config.json
