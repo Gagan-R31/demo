@@ -6,14 +6,6 @@ pipeline {
             apiVersion: v1
             kind: Pod
             metadata:
-              labels:pipeline {
-    agent {
-        kubernetes {
-            label 'jenkins-k8s-agent'
-            yaml """
-            apiVersion: v1
-            kind: Pod
-            metadata:
               labels:
                 jenkins-agent: jenkins-agent
             spec:
