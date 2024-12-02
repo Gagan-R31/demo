@@ -49,20 +49,16 @@ pipeline {
     }
 
     stages {
-        stage('Check Branch or Tag') {
+        stage('Check Tag or Branch') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'main') {
-                        echo "This is the main branch."
-                        // Add steps for main branch here
-                    } else if (env.TAG_NAME) {
-                        echo "A tag has been pushed: ${env.TAG_NAME}"
-                        // Add steps for tags here
+                    if (buildingTags()) {
+                        echo "Pipeline triggered by tag: ${env.GIT_TAG_NAME}"
                     } else {
-                        echo "This is not the main branch or a tag."
+                        echo "Pipeline triggered by branch: ${env.GIT_BRANCH}"
                     }
                 }
             }
         }
     }
-} 
+}
