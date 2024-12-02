@@ -30,7 +30,7 @@ pipeline {
             """
         }
     }
-    stages {
+    
         stages {
         stage('Check Tag or Branch') {
             steps {
@@ -45,4 +45,4 @@ pipeline {
         }
     }
 }
-}
+
