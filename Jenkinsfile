@@ -82,7 +82,7 @@ pipeline {
             steps {
                 script {
                     sh """
-                    git clone ${HELM_CHART_REPO}
+                    git clone ${HELM_CHART_REPO} helm-chart
                     """
                 }
             }
