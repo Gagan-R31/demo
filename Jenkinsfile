@@ -29,6 +29,14 @@ pipeline {
                 command:
                 - cat
                 tty: true
+              - name: curl-jq
+                image: stedolan/jq
+                command:
+                - cat
+                tty: true
+                volumeMounts:
+                - name: workspace-volume
+                  mountPath: /workspace
               volumes:
               - name: kaniko-secret
                 secret:
@@ -42,7 +50,7 @@ pipeline {
         }
     }
     environment {
-        GITHUB_TOKEN = credentials('github-token-gagan') // GitHub token credential
+        GITHUB_TOKEN = credentials('github-token') // GitHub token credential
         DOCKERHUB_REPO = 'gaganr31/argu'
         GITHUB_REPO = 'Gagan-R31/demo' // GitHub repo name
         DEPLOYMENT_NAME = 'argu'
@@ -51,19 +59,23 @@ pipeline {
     stages {
         stage('Fetch Latest Release Tag') {
             steps {
-                script {
-                    // Fetch the latest release tag from GitHub API
-                    def response = sh(
-                        script: """
-                        curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
-                        https://api.github.com/repos/${GITHUB_REPO}/releases/latest | jq -r '.tag_name'
-                        """,
-                        returnStdout: true
-                    ).trim()
-                    
-                    // Use the fetched tag as an environment variable
-                    env.RELEASE_TAG = response
-                    echo "Fetched GitHub release tag: ${RELEASE_TAG}"
+                container('curl-jq') {
+                    script {
+                        // Pass the secret as an environment variable to avoid interpolation
+                        withEnv(["GITHUB_AUTH=token ${GITHUB_TOKEN}"]) {
+                            def response = sh(
+                                script: """
+                                curl -s -H "Authorization: ${GITHUB_AUTH}" \
+                                https://api.github.com/repos/${GITHUB_REPO}/releases/latest | jq -r '.tag_name'
+                                """,
+                                returnStdout: true
+                            ).trim()
+                            
+                            // Use the fetched tag as an environment variable
+                            env.RELEASE_TAG = response
+                            echo "Fetched GitHub release tag: ${RELEASE_TAG}"
+                        }
+                    }
                 }
             }
         }
@@ -72,7 +84,7 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone -b ${RELEASE_TAG} https://github.com/Gagan-R31/demo.git
+                    git clone -b ${RELEASE_TAG} https://github.com/${GITHUB_REPO}.git
                     """
                     env.COMMIT_SHA = sh(
                         script: "git -C ${workspaceDir}/demo rev-parse --short HEAD",
