@@ -16,28 +16,15 @@ pipeline {
               - name: jnlp
                 image: jenkins/inbound-agent
                 args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
-              - name: kaniko
-                image: gaganr31/kaniko-go
-                command:
-                - /busybox/sh
-                tty: true
-                volumeMounts:
-                - name: docker-secret
-                  mountPath: /kaniko/.docker
-                - name: workspace-volume
-                  mountPath: /workspace
-              - name: kubectl
-                image: boxboat/kubectl
+              - name: git
+                image: alpine/git
                 command:
                 - cat
                 tty: true
+                volumeMounts:
+                - name: workspace-volume
+                  mountPath: /workspace
               volumes:
-              - name: docker-secret
-                secret:
-                  secretName: acr-secret
-                  items:
-                  - key: .dockerconfigjson
-                    path: config.json
               - name: workspace-volume
                 emptyDir: {}
             """
@@ -46,7 +33,7 @@ pipeline {
     stages {
         stage('Display Latest Tag') {
             steps {
-                container('kubectl') {
+                container('git') {
                     script {
                         def latestTag = sh(
                             script: '''
