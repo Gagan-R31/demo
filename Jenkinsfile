@@ -26,8 +26,13 @@ pipeline {
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
-              - name: kubectl
-                image: boxboat/kubectl
+              - name: git
+                image: alpine/git
+                command:
+                - cat
+                tty: true
+              - name: yq
+                image: mikefarah/yq:latest
                 command:
                 - cat
                 tty: true
@@ -45,7 +50,9 @@ pipeline {
     }
     environment {
         DOCKERHUB_REPO = 'gaganr31/chat-service'
+        GITHUB_TOKEN = credentials('github-token-gagan')
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
+        HELM_CHART_REPO = 'https://github.com/Gagan-R31/helm-chart.git'
     }
     stages {
         stage('Clone Repository') {
@@ -67,6 +74,34 @@ pipeline {
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
                                          --destination=${DOCKERHUB_REPO}:${env.TAG_NAME}
+                        """
+                    }
+                }
+            }
+        }
+        stage('Update Helm Chart') {
+            steps {
+                container('yq') {
+                    script {
+                        sh """
+                        git clone ${HELM_CHART_REPO} helm-charts
+                        yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i helm-charts/values.yaml
+                        """
+                    }
+                }
+            }
+        }
+        stage('Commit and Push Helm Chart Changes') {
+            steps {
+                container('git') {
+                    script {
+                        sh """
+                        cd helm-charts
+                        git config user.name "Jenkins"
+                        git config user.email "Gagan6696@gmail.com"
+                        git add .
+                        git commit -m "Update chartService image tag to ${env.TAG_NAME}"
+                        git push origin master
                         """
                     }
                 }
