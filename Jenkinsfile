@@ -47,7 +47,6 @@ pipeline {
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
-        SOURCE_BRANCH = "${env.CHANGE_BRANCH ?: env.GIT_BRANCH}"
     }
     stages {
         stage('Clone Repository') {
@@ -55,9 +54,17 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone -b Jenkisn-test https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
+                    git clone https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
-                    env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
+                    // Extract branch name
+                    env.BRANCH_NAME = sh(
+                        script: "git -C ${workspaceDir}/demo rev-parse --abbrev-ref HEAD",
+                        returnStdout: true
+                    ).trim()
+                    env.COMMIT_SHA = sh(
+                        script: "git -C ${workspaceDir}/demo rev-parse --short HEAD",
+                        returnStdout: true
+                    ).trim()
                 }
             }
         }
@@ -69,7 +76,7 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${COMMIT_SHA}
+                                         --destination=${DOCKERHUB_REPO}:${BRANCH_NAME}-${COMMIT_SHA}
                         """
                     }
                 }
