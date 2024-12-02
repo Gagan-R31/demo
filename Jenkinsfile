@@ -24,11 +24,6 @@ pipeline {
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
-              - name: kubectl
-                image: boxboat/kubectl
-                command:
-                - cat
-                tty: true
               - name: curl-jq
                 image: stedolan/jq
                 command:
@@ -70,7 +65,6 @@ pipeline {
                                 returnStdout: true
                             ).trim()
                             
-                            // Use the fetched tag as an environment variable
                             env.RELEASE_TAG = response
                             echo "Fetched GitHub release tag: ${RELEASE_TAG}"
                         }
