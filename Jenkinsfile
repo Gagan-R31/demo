@@ -16,21 +16,28 @@ pipeline {
               - name: jnlp
                 image: jenkins/inbound-agent
                 args: ['\$(JENKINS_SECRET)', '\$(JENKINS_NAME)']
-              - name: git
-                image: alpine/git
+              - name: kaniko
+                image: gaganr31/kaniko-go
+                command:
+                - /busybox/sh
+                tty: true
+                volumeMounts:
+                - name: docker-secret
+                  mountPath: /kaniko/.docker
+                - name: workspace-volume
+                  mountPath: /workspace
+              - name: kubectl
+                image: boxboat/kubectl
                 command:
                 - cat
                 tty: true
-                volumeMounts:
-                - name: workspace-volume
-                  mountPath: /workspace
-              - name: kaniko
-                image: gcr.io/kaniko-project/executor:latest
-                args: ["--executor", "executor"]
-                volumeMounts:
-                - name: workspace-volume
-                  mountPath: /workspace
               volumes:
+              - name: docker-secret
+                secret:
+                  secretName: acr-secret
+                  items:
+                  - key: .dockerconfigjson
+                    path: config.json
               - name: workspace-volume
                 emptyDir: {}
             """
