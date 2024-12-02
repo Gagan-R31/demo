@@ -44,7 +44,7 @@ pipeline {
         }
     }
     environment {
-        DOCKERHUB_REPO = 'gaganr31/argu'
+        DOCKERHUB_REPO = 'gaganr31/helm-chart'
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
     }
     stages {
@@ -66,19 +66,8 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${env.BRANCH_NAME}
+                                         --destination=${DOCKERHUB_REPO}
                         """
-                    }
-                }
-            }
-        }
-        stage('Check Tag or Branch') {  // Removed nested 'stages' here
-            steps {
-                script {
-                    if (env.TAG_NAME) {
-                        echo "Pipeline triggered by tag: ${env.TAG_NAME}"
-                    } else {
-                        echo "Pipeline triggered by branch: ${env.GIT_BRANCH}"
                     }
                 }
             }
