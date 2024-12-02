@@ -85,7 +85,7 @@ pipeline {
                         git config user.email "Gagan6696@gmail.com"
                         git add .
                         git commit -m "Update chartService image tag to ${env.TAG_NAME}"
-                        git push origin master
+                        git push https://${GITHUB_TOKEN}@github.com/Gagan-R31/helm-chart.git master
                         """
                     }
                 }
