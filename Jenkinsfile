@@ -43,25 +43,26 @@ pipeline {
             """
         }
     }
+    environment {
+        BRANCH_NAME = "${env.GIT_BRANCH}"
+        TAG_NAME = "${env.GIT_TAG}"
+    }
+
     stages {
-        stage('Load Pipeline Script') {
+        stage('Check Branch or Tag') {
             steps {
                 script {
-                    if (env.BRANCH_NAME.startsWith('refs/tags/')) {
-                        // Only trigger for tags that match the pattern "v*"
-                        if (env.BRANCH_NAME.matches('^refs/tags/v.*')) {
-                            echo "Loading tag-specific pipeline for: ${env.BRANCH_NAME}"
-                            load 'tagPipeline.groovy'
-                        } else {
-                            echo "Tag does not match 'v*'. Skipping pipeline."
-                            currentBuild.result = 'SUCCESS'
-                        }
+                    if (env.BRANCH_NAME == 'main') {
+                        echo "This is the main branch."
+                        // Add steps for main branch here
+                    } else if (env.TAG_NAME) {
+                        echo "A tag has been pushed: ${TAG_NAME}"
+                        // Add steps for tags here
                     } else {
-                        echo "Loading branch-specific pipeline for: ${env.BRANCH_NAME}"
-                        load 'branchPipeline.groovy'
+                        echo "This is not the main branch or a tag."
                     }
                 }
             }
         }
     }
-}
+} 
