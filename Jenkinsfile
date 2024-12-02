@@ -24,6 +24,12 @@ pipeline {
                 volumeMounts:
                 - name: workspace-volume
                   mountPath: /workspace
+              - name: kaniko
+                image: gcr.io/kaniko-project/executor:latest
+                args: ["--executor", "executor"]
+                volumeMounts:
+                - name: workspace-volume
+                  mountPath: /workspace
               volumes:
               - name: workspace-volume
                 emptyDir: {}
@@ -40,7 +46,7 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone --depth 1 --branch ${env.TAG_NAME} https://github.com/Gagan-R31/demo.git
+                    git clone --depth 1 --branch ${env.TAG_NAME} ${env.REPO_URL}
                     """
                 }
             }
@@ -53,24 +59,22 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${BRANCH_NAME}
+                                         --destination=${DOCKERHUB_REPO}:${env.BRANCH_NAME}
                         """
                     }
                 }
             }
         }
-        stages {
-        stage('Check Tag or Branch') {
+        stage('Check Tag or Branch') {  // Removed nested 'stages' here
             steps {
                 script {
-                   
+                    if (env.TAG_NAME) {
                         echo "Pipeline triggered by tag: ${env.TAG_NAME}"
-                  
+                    } else {
                         echo "Pipeline triggered by branch: ${env.GIT_BRANCH}"
                     }
                 }
             }
         }
     }
-
-
+}
