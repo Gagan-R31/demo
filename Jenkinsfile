@@ -35,14 +35,14 @@ pipeline {
         stage('Check Tag or Branch') {
             steps {
                 script {
-                    if (buildingTags()) {
+                   
                         echo "Pipeline triggered by tag: ${env.TAG_NAME}"
-                    } else {
+                  
                         echo "Pipeline triggered by branch: ${env.GIT_BRANCH}"
                     }
                 }
             }
         }
     }
-}
+
 
