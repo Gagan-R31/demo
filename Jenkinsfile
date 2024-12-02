@@ -31,18 +31,14 @@ pipeline {
         }
     }
     stages {
+        stages {
         stage('Check Tag or Branch') {
             steps {
                 script {
-                    def gitRef = sh(
-                        script: 'git rev-parse --abbrev-ref HEAD || git describe --tags',
-                        returnStdout: true
-                    ).trim()
-                    
-                    if (gitRef.startsWith("tags/") || gitRef.matches("v?\\d+\\.\\d+\\.\\d+")) {
-                        echo "Pipeline triggered by tag: ${gitRef.replace('tags/', '')}"
+                    if (buildingTags()) {
+                        echo "Pipeline triggered by tag: ${env.TAG_NAME}"
                     } else {
-                        echo "Pipeline triggered by branch: ${gitRef}"
+                        echo "Pipeline triggered by branch: ${env.GIT_BRANCH}"
                     }
                 }
             }
