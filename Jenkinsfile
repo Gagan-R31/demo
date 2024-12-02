@@ -42,7 +42,7 @@ pipeline {
         }
     }
     environment {
-        GITHUB_TOKEN = credentials('github-token') // GitHub token credential
+        // GITHUB_TOKEN = credentials('github-token') // GitHub token credential
         DOCKERHUB_REPO = 'gaganr31/argu'
         GITHUB_REPO = 'Gagan-R31/demo' // GitHub repo name
         DEPLOYMENT_NAME = 'argu'
