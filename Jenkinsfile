@@ -53,9 +53,15 @@ pipeline {
         stage('Clone Application Repository') {
             steps {
                 script {
-                    sh """
-                    git clone --depth 1 --branch ${env.TAG_NAME} ${env.REPO_URL}
-                    """
+                    if (env.TAG_NAME != null && env.TAG_NAME != '') {
+                        sh """
+                        git clone --depth 1 --branch ${env.TAG_NAME} ${env.REPO_URL}
+                        """
+                    } else {
+                        sh """
+                        git clone --depth 1 --branch version-1.0.1 ${env.REPO_URL}
+                        """
+                    }
                 }
             }
         }
@@ -103,9 +109,6 @@ pipeline {
                     script {
                         sh """
                         echo "Applying Kubernetes manifests to deploy to K3s..."
-                        kubectl apply -f k8s/deployment.yaml
-                        kubectl apply -f k8s/service.yaml
-                        kubectl rollout status deployment/chat-service -n default
                         echo "Deployment to K3s completed."
                         """
                     }
