@@ -55,7 +55,7 @@ pipeline {
                     // Fetch the latest release tag from GitHub API
                     def response = sh(
                         script: """
-                        curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+                        # curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
                         https://api.github.com/repos/${GITHUB_REPO}/releases/latest | jq -r '.tag_name'
                         """,
                         returnStdout: true
