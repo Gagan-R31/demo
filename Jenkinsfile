@@ -53,25 +53,35 @@ pipeline {
     }
     stages {
         stage('Fetch Latest Release Tag') {
-            steps {
-                container('curl-jq') {
-                    script {
-                        withEnv(["GITHUB_AUTH=token ${GITHUB_TOKEN}"]) {
-                            def response = sh(
-                                script: """
-                                curl -s -H "Authorization: ${GITHUB_AUTH}" \
-                                https://api.github.com/repos/${GITHUB_REPO}/releases/latest | jq -r '.tag_name'
-                                """,
-                                returnStdout: true
-                            ).trim()
-                            
-                            env.RELEASE_TAG = response
-                            echo "Fetched GitHub release tag: ${RELEASE_TAG}"
-                        }
-                    }
+    steps {
+        container('curl-jq') {
+            script {
+                withEnv(["GITHUB_AUTH=token ${GITHUB_TOKEN}"]) {
+                    // Fetch the latest release data and print the response for debugging
+                    def response = sh(
+                        script: """
+                        curl -s -H "Authorization: ${GITHUB_AUTH}" \
+                        https://api.github.com/repos/${GITHUB_REPO}/releases/latest
+                        """,
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Debug: print the raw response from GitHub
+                    echo "GitHub API response: ${response}"
+
+                    // Parse the tag name from the response
+                    env.RELEASE_TAG = sh(
+                        script: "echo '${response}' | jq -r '.tag_name'",
+                        returnStdout: true
+                    ).trim()
+
+                    // Print the release tag fetched
+                    echo "Fetched GitHub release tag: ${RELEASE_TAG}"
                 }
             }
         }
+    }
+}
         stage('Clone Repository') {
             steps {
                 script {
