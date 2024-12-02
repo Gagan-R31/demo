@@ -27,7 +27,7 @@ pipeline {
                 - name: workspace-volume
                   mountPath: /workspace
               - name: git
-                image: alpine/git
+                image: linuxserver/yq
                 command:
                 - cat
                 tty: true
@@ -72,39 +72,20 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${env.TAG_NAME}
+                                         --destination=${DOCKERHUB_REPO}:${env.BRANCH_NAME}
                         """
                     }
-                }
-            }
-        }
-        stage('Clone Helm Chart Repository') {
-            steps {
-                script {
-                    sh """
-                    git clone ${HELM_CHART_REPO} helm-chart
-                    """
                 }
             }
         }
         stage('Update Helm Chart') {
             steps {
-                container('yq') {
-                    script {
-                        sh """
-                        cd helm-chart
-                        yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i helm-charts/values.yaml
-                        """
-                    }
-                }
-            }
-        }
-        stage('Commit and Push Helm Chart Changes') {
-            steps {
                 container('git') {
                     script {
                         sh """
+                        git clone ${HELM_CHART_REPO} helm-chart
                         cd helm-chart
+                        yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i helm-chart/values.yaml
                         git config user.name "Jenkins"
                         git config user.email "Gagan6696@gmail.com"
                         git add .
