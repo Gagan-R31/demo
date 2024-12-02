@@ -24,14 +24,11 @@ pipeline {
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
-              - name: curl-jq
-                image: stedolan/jq
+              - name: kubectl
+                image: boxboat/kubectl
                 command:
                 - cat
                 tty: true
-                volumeMounts:
-                - name: workspace-volume
-                  mountPath: /workspace
               volumes:
               - name: kaniko-secret
                 secret:
@@ -45,54 +42,35 @@ pipeline {
         }
     }
     environment {
-        GITHUB_TOKEN = credentials('github-token-gagan') // GitHub token credential
+        GITHUB_TOKEN = credentials('github-token')
         DOCKERHUB_REPO = 'gaganr31/argu'
-        GITHUB_REPO = 'Gagan-R31/demo' // GitHub repo name
+        REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
+        TAG_NAME = "${env.TAG_NAME}" // Automatically populated in a tag-based build
+    }
+    triggers {
+        githubPush()
     }
     stages {
-        stage('Fetch Latest Release Tag') {
-    steps {
-        container('curl-jq') {
-            script {
-                withEnv(["GITHUB_AUTH=token ${GITHUB_TOKEN}"]) {
-                    // Fetch the latest release data and print the response for debugging
-                    def response = sh(
-                        script: """
-                        curl -s -H "Authorization: ${GITHUB_AUTH}" \
-                        https://api.github.com/repos/${GITHUB_REPO}/releases/latest
-                        """,
-                        returnStdout: true
-                    ).trim()
-                    
-                    // Debug: print the raw response from GitHub
-                    echo "GitHub API response: ${response}"
-
-                    // Parse the tag name from the response
-                    env.RELEASE_TAG = sh(
-                        script: "echo '${response}' | jq -r '.tag_name'",
-                        returnStdout: true
-                    ).trim()
-
-                    // Print the release tag fetched
-                    echo "Fetched GitHub release tag: ${RELEASE_TAG}"
+        stage('Validate Tag') {
+            when {
+                expression { return env.TAG_NAME != null && env.TAG_NAME != '' }
+            }
+            steps {
+                script {
+                    echo "Pipeline triggered for tag: ${TAG_NAME}"
                 }
             }
         }
-    }
-}
         stage('Clone Repository') {
             steps {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone -b ${RELEASE_TAG} https://github.com/${GITHUB_REPO}.git
+                    git clone -b ${TAG_NAME} https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
-                    env.COMMIT_SHA = sh(
-                        script: "git -C ${workspaceDir}/demo rev-parse --short HEAD",
-                        returnStdout: true
-                    ).trim()
+                    env.COMMIT_SHA = sh(script: "git -C ${workspaceDir}/demo rev-parse --short HEAD", returnStdout: true).trim()
                 }
             }
         }
@@ -104,11 +82,19 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${RELEASE_TAG}
+                                         --destination=${DOCKERHUB_REPO}:${TAG_NAME}
                         """
                     }
                 }
             }
+        }
+    }
+    post {
+        success {
+            echo "Pipeline completed successfully for tag ${TAG_NAME}"
+        }
+        failure {
+            echo "Pipeline failed for tag ${TAG_NAME}"
         }
     }
 }
