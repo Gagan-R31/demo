@@ -42,24 +42,38 @@ pipeline {
         }
     }
     environment {
+        GITHUB_TOKEN = credentials('github-token') // GitHub token credential
         DOCKERHUB_REPO = 'gaganr31/argu'
-        REPO_URL = 'https://github.com/Gagan-R31/demo.git'
+        GITHUB_REPO = 'Gagan-R31/demo' // GitHub repo name
         DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
     }
     stages {
+        stage('Fetch Latest Release Tag') {
+            steps {
+                script {
+                    // Fetch the latest release tag from GitHub API
+                    def response = sh(
+                        script: """
+                        curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+                        https://api.github.com/repos/${GITHUB_REPO}/releases/latest | jq -r '.tag_name'
+                        """,
+                        returnStdout: true
+                    ).trim()
+                    
+                    // Use the fetched tag as an environment variable
+                    env.RELEASE_TAG = response
+                    echo "Fetched GitHub release tag: ${RELEASE_TAG}"
+                }
+            }
+        }
         stage('Clone Repository') {
             steps {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone -b version-1.0.1 https://github.com/Gagan-R31/demo.git
+                    git clone -b ${RELEASE_TAG} https://github.com/Gagan-R31/demo.git
                     """
-                    // Extract the branch name explicitly
-                    env.BRANCH_NAME = sh(
-                        script: "git -C ${workspaceDir}/demo symbolic-ref --short HEAD || echo \$GIT_BRANCH",
-                        returnStdout: true
-                    ).trim()
                     env.COMMIT_SHA = sh(
                         script: "git -C ${workspaceDir}/demo rev-parse --short HEAD",
                         returnStdout: true
@@ -75,7 +89,7 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${BRANCH_NAME}
+                                         --destination=${DOCKERHUB_REPO}:${RELEASE_TAG}
                         """
                     }
                 }
