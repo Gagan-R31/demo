@@ -89,12 +89,4 @@ pipeline {
             }
         }
     }
-    post {
-        success {
-            echo "Pipeline completed successfully for tag ${TAG_NAME}"
-        }
-        failure {
-            echo "Pipeline failed for tag ${TAG_NAME}"
-        }
-    }
 }
