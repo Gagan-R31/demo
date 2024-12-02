@@ -66,7 +66,7 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}
+                                         --destination=${DOCKERHUB_REPO}:${env.TAG_NAME}
                         """
                     }
                 }
