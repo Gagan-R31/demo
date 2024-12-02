@@ -56,7 +56,7 @@ pipeline {
                         echo "This is the main branch."
                         // Add steps for main branch here
                     } else if (env.TAG_NAME) {
-                        echo "A tag has been pushed: ${TAG_NAME}"
+                        echo "A tag has been pushed: ${env.TAG_NAME}"
                         // Add steps for tags here
                     } else {
                         echo "This is not the main branch or a tag."
