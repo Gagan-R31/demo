@@ -53,11 +53,11 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone -b version-1.0.1 https://github.com/Gagan-R31/demo.git
+                    git clone https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
                     """
-                    // Extract branch name
+                    // Extract the branch name explicitly
                     env.BRANCH_NAME = sh(
-                        script: "git -C ${workspaceDir}/demo rev-parse --abbrev-ref HEAD",
+                        script: "git -C ${workspaceDir}/demo symbolic-ref --short HEAD || echo \$GIT_BRANCH",
                         returnStdout: true
                     ).trim()
                     env.COMMIT_SHA = sh(
