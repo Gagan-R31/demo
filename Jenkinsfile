@@ -75,7 +75,7 @@ pipeline {
                         cd demo
                         /kaniko/executor --dockerfile=./Dockerfile \
                                          --context=. \
-                                         --destination=${DOCKERHUB_REPO}:${BRANCH_NAME}-${COMMIT_SHA}
+                                         --destination=${DOCKERHUB_REPO}:${BRANCH_NAME}
                         """
                     }
                 }
