@@ -27,12 +27,7 @@ pipeline {
                 - name: workspace-volume
                   mountPath: /workspace
               - name: git
-                image: linuxserver/yq
-                command:
-                - cat
-                tty: true
-              - name: yq
-                image: mikefarah/yq:latest
+                image: gaganr31/git-yq
                 command:
                 - cat
                 tty: true
