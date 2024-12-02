@@ -43,19 +43,19 @@ pipeline {
             """
         }
     }
-    environment {
-        BRANCH_NAME = "${env.GIT_BRANCH}"
-        TAG_NAME = "${env.GIT_TAG}"
-    }
-
     stages {
-        stage('Check Tag or Branch') {
+        stage('Display Latest Tag') {
             steps {
-                script {
-                    if (buildingTags()) {
-                        echo "Pipeline triggered by tag: ${env.GIT_TAG_NAME}"
-                    } else {
-                        echo "Pipeline triggered by branch: ${env.GIT_BRANCH}"
+                container('kubectl') {
+                    script {
+                        def latestTag = sh(
+                            script: '''
+                            git fetch --tags
+                            git tag --list | sort -V | tail -n 1
+                            ''',
+                            returnStdout: true
+                        ).trim()
+                        echo "Latest Tag: ${latestTag}"
                     }
                 }
             }
