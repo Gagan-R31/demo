@@ -47,7 +47,7 @@ pipeline {
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
         DEPLOYMENT_NAME = 'argu'
         NAMESPACE = 'jenkins-operator'
-        TAG_NAME = "${env.TAG_NAME}" // Automatically populated in a tag-based build
+        TAG_NAME = "${env.GIT_TAG_NAME}" // Git tag detected from the push event
     }
     triggers {
         githubPush()
@@ -55,7 +55,9 @@ pipeline {
     stages {
         stage('Validate Tag') {
             when {
-                expression { return env.TAG_NAME != null && env.TAG_NAME != '' }
+                expression { 
+                    return env.TAG_NAME?.startsWith('v') 
+                }
             }
             steps {
                 script {
