@@ -79,12 +79,22 @@ pipeline {
                 }
             }
         }
+        stage('Clone Repository') {
+            steps {
+                script {
+                    def workspaceDir = pwd()
+                    sh """
+                    git clone ${HELM_CHART_REPO}
+                    """
+                }
+            }
+        }
         stage('Update Helm Chart') {
             steps {
                 container('yq') {
                     script {
                         sh """
-                        git clone ${HELM_CHART_REPO} helm-charts
+                        cd helm-chart
                         yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i helm-charts/values.yaml
                         """
                     }
@@ -96,7 +106,7 @@ pipeline {
                 container('git') {
                     script {
                         sh """
-                        cd helm-charts
+                        cd helm-chart
                         git config user.name "Jenkins"
                         git config user.email "Gagan6696@gmail.com"
                         git add .
