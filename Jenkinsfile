@@ -80,7 +80,7 @@ pipeline {
                         sh """
                         git clone ${HELM_CHART_REPO} helm-chart
                         cd helm-chart
-                        yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i helm-chart/values.yaml
+                        yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i values.yaml
                         git config user.name "Jenkins"
                         git config user.email "Gagan6696@gmail.com"
                         git add .
