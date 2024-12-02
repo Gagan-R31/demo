@@ -26,8 +26,8 @@ pipeline {
                   mountPath: /kaniko/.docker
                 - name: workspace-volume
                   mountPath: /workspace
-              - name: git
-                image: gaganr31/git-yq
+              - name: kubectl
+                image: boxboat/kubectl
                 command:
                 - cat
                 tty: true
@@ -74,11 +74,14 @@ pipeline {
             }
         }
         stage('Update Helm Chart') {
+            when {
+                expression { env.TAG_NAME != null && env.TAG_NAME != '' }
+            }
             steps {
                 container('git') {
                     script {
                         sh """
-                        git clone ${HELM_CHART_REPO} helm-chart
+                        git clone https://${GITHUB_TOKEN}@github.com/Gagan-R31/helm-chart.git helm-chart
                         cd helm-chart
                         yq eval ".chartService.image.tag = \\"${env.TAG_NAME}\\"" -i values.yaml
                         git config user.name "Jenkins"
@@ -86,6 +89,24 @@ pipeline {
                         git add .
                         git commit -m "Update chartService image tag to ${env.TAG_NAME}"
                         git push https://${GITHUB_TOKEN}@github.com/Gagan-R31/helm-chart.git master
+                        """
+                    }
+                }
+            }
+        }
+        stage('Deploying to K3s') {
+            when {
+                expression { env.TAG_NAME == null || env.TAG_NAME == '' }
+            }
+            steps {
+                container('kubectl') {
+                    script {
+                        sh """
+                        echo "Applying Kubernetes manifests to deploy to K3s..."
+                        kubectl apply -f k8s/deployment.yaml
+                        kubectl apply -f k8s/service.yaml
+                        kubectl rollout status deployment/chat-service -n default
+                        echo "Deployment to K3s completed."
                         """
                     }
                 }
