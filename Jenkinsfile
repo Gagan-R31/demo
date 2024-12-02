@@ -31,18 +31,18 @@ pipeline {
         }
     }
     stages {
-        stage('Display Latest Tag') {
+        stage('Check Tag or Branch') {
             steps {
-                container('git') {
-                    script {
-                        def latestTag = sh(
-                            script: '''
-                            git fetch --tags
-                            git tag --list | sort -V | tail -n 1
-                            ''',
-                            returnStdout: true
-                        ).trim()
-                        echo "Latest Tag: ${latestTag}"
+                script {
+                    def gitRef = sh(
+                        script: 'git rev-parse --abbrev-ref HEAD || git describe --tags',
+                        returnStdout: true
+                    ).trim()
+                    
+                    if (gitRef.startsWith("tags/") || gitRef.matches("v?\\d+\\.\\d+\\.\\d+")) {
+                        echo "Pipeline triggered by tag: ${gitRef.replace('tags/', '')}"
+                    } else {
+                        echo "Pipeline triggered by branch: ${gitRef}"
                     }
                 }
             }
