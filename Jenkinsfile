@@ -54,7 +54,7 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone https://${GITHUB_TOKEN}@github.com/Gagan-R31/demo.git
+                    git clone -b version-1.0.1 https://github.com/Gagan-R31/demo.git
                     """
                     // Extract branch name
                     env.BRANCH_NAME = sh(
