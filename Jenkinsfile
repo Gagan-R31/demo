@@ -42,7 +42,7 @@ pipeline {
         }
     }
     environment {
-        // GITHUB_TOKEN = credentials('github-token') // GitHub token credential
+        GITHUB_TOKEN = credentials('github-token-gagan') // GitHub token credential
         DOCKERHUB_REPO = 'gaganr31/argu'
         GITHUB_REPO = 'Gagan-R31/demo' // GitHub repo name
         DEPLOYMENT_NAME = 'argu'
@@ -55,7 +55,7 @@ pipeline {
                     // Fetch the latest release tag from GitHub API
                     def response = sh(
                         script: """
-                        # curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+                        curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
                         https://api.github.com/repos/${GITHUB_REPO}/releases/latest | jq -r '.tag_name'
                         """,
                         returnStdout: true
