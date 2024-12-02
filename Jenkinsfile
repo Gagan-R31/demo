@@ -44,7 +44,7 @@ pipeline {
         }
     }
     environment {
-        DOCKERHUB_REPO = 'gaganr31/helm-chart'
+        DOCKERHUB_REPO = 'gaganr31/chat-service'
         REPO_URL = 'https://github.com/Gagan-R31/demo.git'
     }
     stages {
