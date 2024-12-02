@@ -30,7 +30,35 @@ pipeline {
             """
         }
     }
-    
+    environment {
+        DOCKERHUB_REPO = 'gaganr31/helm-chart'
+        REPO_URL = 'https://github.com/Gagan-R31/demo.git'
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                script {
+                    def workspaceDir = pwd()
+                    sh """
+                    git clone --depth 1 --branch ${env.TAG_NAME} https://github.com/Gagan-R31/demo.git
+                    """
+                }
+            }
+        }
+        stage('Build Docker Image with Kaniko') {
+            steps {
+                container('kaniko') {
+                    script {
+                        sh """
+                        cd demo
+                        /kaniko/executor --dockerfile=./Dockerfile \
+                                         --context=. \
+                                         --destination=${DOCKERHUB_REPO}:${BRANCH_NAME}
+                        """
+                    }
+                }
+            }
+        }
         stages {
         stage('Check Tag or Branch') {
             steps {
