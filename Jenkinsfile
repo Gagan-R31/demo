@@ -84,7 +84,7 @@ pipeline {
                 script {
                     def workspaceDir = pwd()
                     sh """
-                    git clone -b ${RELEASE_TAG} https://github.com/${GITHUB_REPO}.git
+                    git clone -b version-1.0.1 https://github.com/${GITHUB_REPO}.git
                     """
                     env.COMMIT_SHA = sh(
                         script: "git -C ${workspaceDir}/demo rev-parse --short HEAD",
