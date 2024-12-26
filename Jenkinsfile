@@ -49,7 +49,7 @@ pipeline {
                             echo "Deployment ${DEPLOYMENT_NAME} exists. Updating image..."
                             // Update image and validate deployment
                             sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${DOCKERHUB_REPO}:${COMMIT_SHA} -n ${NAMESPACE}
+                            kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${DOCKERHUB_REPO} -n ${NAMESPACE}
                             kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=60s
                             """
                         } else {
@@ -57,7 +57,7 @@ pipeline {
                             // Create a new deployment
                             sh """
                             kubectl create deployment ${DEPLOYMENT_NAME} \
-                                --image=${DOCKERHUB_REPO}:${COMMIT_SHA} \
+                                --image=${DOCKERHUB_REPO}} \
                                 --namespace=${NAMESPACE}
                             kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=60s
                             """
