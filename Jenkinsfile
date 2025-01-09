@@ -40,28 +40,9 @@ pipeline {
                         // Check if the deployment exists
                         def deploymentExists = sh(
                             script: """
-                            kubectl get deployment ${DEPLOYMENT_NAME} -n ${NAMESPACE} > /dev/null 2>&1 && echo "true" || echo "false"
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        if (deploymentExists == "true") {
-                            echo "Deployment ${DEPLOYMENT_NAME} exists. Updating image..."
-                            // Update image and validate deployment
-                            sh """
-                            kubectl set image deployment/${DEPLOYMENT_NAME} ${CONTAINER_NAME}=${DOCKERHUB_REPO}:latest -n ${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=60s
+                            echo "false"
                             """
-                        } else {
-                            echo "Deployment ${DEPLOYMENT_NAME} does not exist. Creating a new deployment..."
-                            // Create a new deployment
-                            sh """
-                            kubectl create deployment ${DEPLOYMENT_NAME} \
-                                --image=${DOCKERHUB_REPO}:latest \
-                                --namespace=${NAMESPACE}
-                            kubectl rollout status deployment/${DEPLOYMENT_NAME} -n ${NAMESPACE} --timeout=60s
-                            """
-                        }
+                        )
                     }
                 }
             }
