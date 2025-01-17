@@ -21,3 +21,4 @@ jobs:
       # Step 3: Display the .env file contents
       - name: Display .env content
         run: cat .env
+        
